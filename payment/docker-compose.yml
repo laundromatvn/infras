@@ -1,0 +1,109 @@
+name: laundry
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-laundry}_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-laundry}
+      POSTGRES_USER: ${POSTGRES_USER:-laundry}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-laundry}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-laundry}_redis
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: ${COMPOSE_PROJECT_NAME:-laundry}_mosquitto
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 sh -c 'nc -z localhost 1883' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+    container_name: ${COMPOSE_PROJECT_NAME:-laundry}_backend
+    environment:
+      BACKEND_DB_URL: ${BACKEND_DB_URL:-postgresql+psycopg2://laundry:laundry@postgres:5432/laundry}
+      BACKEND_REDIS_URL: ${BACKEND_REDIS_URL:-redis://redis:6379/0}
+      BACKEND_MQTT_HOST: ${BACKEND_MQTT_HOST:-mosquitto}
+      BACKEND_MQTT_PORT: ${BACKEND_MQTT_PORT:-1883}
+      BACKEND_MQTT_TOPIC_PREFIX: ${BACKEND_MQTT_TOPIC_PREFIX:-laundry/devices}
+      BACKEND_ACK_TIMEOUT_SEC: ${BACKEND_ACK_TIMEOUT_SEC:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    restart: unless-stopped
+    profiles: ["app"]
+
+  frontend:
+    build:
+      context: ../frontend
+    container_name: ${COMPOSE_PROJECT_NAME:-laundry}_frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    restart: unless-stopped
+    profiles: ["app"]
+
+  iot-simulator:
+    build:
+      context: ../iot-simulator
+    container_name: ${COMPOSE_PROJECT_NAME:-laundry}_iot_simulator
+    environment:
+      MQTT_HOST: ${BACKEND_MQTT_HOST:-mosquitto}
+      MQTT_PORT: ${BACKEND_MQTT_PORT:-1883}
+      TOPIC_PREFIX: ${BACKEND_MQTT_TOPIC_PREFIX:-laundry/devices}
+      LATENCY_MIN_MS: ${SIMULATOR_LATENCY_MIN_MS:-200}
+      LATENCY_MAX_MS: ${SIMULATOR_LATENCY_MAX_MS:-600}
+      RELIABILITY_PERCENT: ${SIMULATOR_RELIABILITY_PERCENT:-95}
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    profiles: ["app"]
+
+volumes:
+  pgdata:
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-laundry}_network

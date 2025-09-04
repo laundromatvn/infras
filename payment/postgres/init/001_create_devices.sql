@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS devices (
+  id UUID PRIMARY KEY,
+  name TEXT NOT NULL,
+  power_state TEXT NOT NULL DEFAULT 'off',
+  last_seen_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
