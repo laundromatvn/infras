@@ -1,0 +1,88 @@
+version: "3.9"
+
+services:
+  lms-backend:
+    image: devlaundromat/lms-backend:20251004_114700_7b2bb02
+    container_name: lms-backend
+    env_file:
+      - backend.env
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+      - mosquitto
+
+  lms-mqtt-consumer:
+    image: devlaundromat/lms-mqtt-consumer:20251004_114718_7b2bb02
+    container_name: lms-mqtt-consumer
+    env_file:
+      - backend.env
+    ports:
+      - "8001:8000"
+    command: uvicorn app.mqtt_consumer:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+      - mosquitto
+
+  lms-frontend:
+    image: devlaundromat/lms-frontend:20251002_231613_5a2c46f
+    container_name: lms-frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+  lms-admin-portal:
+    image: devlaundromat/lms-admin-portal:20251004_114817_4d3c4b5
+    container_name: lms-admin-portal
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: lms_postgres
+    env_file:
+      - postgres.env
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: lms_redis
+    env_file:
+      - redis.env
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: lms_mosquitto
+    env_file:
+      - mosquitto.env
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    restart: unless-stopped
+
+networks:
+  default:
+    name: lms_network
+
+volumes:
+  pg_data:
+    name: lms_pg_data
+
+  redis_data:
+    name: lms_redis_data
+
+  mosquitto_data:
+    name: lms_mosquitto_data
