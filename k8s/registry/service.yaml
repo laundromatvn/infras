@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rancher-registry-clusterip
+  namespace: registry
+  labels:
+    app: rancher-registry
+spec:
+  type: ClusterIP
+  ports:
+    - name: registry
+      port: 5000
+      targetPort: 5000
+      protocol: TCP
+  selector:
+    app: rancher-registry
+
+

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rancher-registry-nodeport
+  namespace: registry
+  labels:
+    app: rancher-registry
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      nodePort: 30103
+  selector:
+    app: rancher-registry
+
+
