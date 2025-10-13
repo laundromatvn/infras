@@ -28,23 +28,11 @@ spec:
           command:
             - uvicorn
           args:
-            - app.main:app
+            - app.mqtt_consumer:app
             - --host
             - 0.0.0.0
             - --port
             - "8001"
-          # readinessProbe:
-          #   httpGet:
-          #     path: /api/health-check
-          #     port: 8000
-          #   initialDelaySeconds: 5
-          #   periodSeconds: 10
-          # livenessProbe:
-          #   httpGet:
-          #     path: /api/health-check
-          #     port: 8000
-          #   initialDelaySeconds: 15
-          #   periodSeconds: 20
           resources:
             requests:
               cpu: "100m"
