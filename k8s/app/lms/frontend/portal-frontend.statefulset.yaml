@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-portal-frontend
+  namespace: lms
+  labels:
+    app: lms-portal-frontend
+spec:
+  serviceName: lms-portal-frontend
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-portal-frontend
+  template:
+    metadata:
+      labels:
+        app: lms-portal-frontend
+    spec:
+      containers:
+        - name: lms-portal-frontend
+          image: devlaundromat/lms-portal-frontend:20251011_103739_18ffba6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+

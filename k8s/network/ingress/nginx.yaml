@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  namespace: nginx
+  # annotations:
+  #   cert-manager.io/issuer: "letsencrypt-prod"
+  #   acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  ingressClassName: "vngcloud"
+  defaultBackend:
+    service:
+      name: nginx-service
+      port:
+        number: 80
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80
+
+

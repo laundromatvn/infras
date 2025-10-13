@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lms-kiosk-frontend-nodeport
+  namespace: lms
+  labels:
+    app: lms-kiosk-frontend
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app: lms-kiosk-frontend
+
+

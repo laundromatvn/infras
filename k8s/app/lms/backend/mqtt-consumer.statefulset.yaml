@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-mqtt-consumer
+  namespace: lms
+  labels:
+    app: lms-mqtt-consumer
+spec:
+  serviceName: lms-mqtt-consumer
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-mqtt-consumer
+  template:
+    metadata:
+      labels:
+        app: lms-mqtt-consumer
+    spec:
+      containers:
+        - name: lms-mqtt-consumer
+          image: devlaundromat/lms-mqtt-consumer:20251011_110054_606ae07
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: lms-backend-secret
+          command:
+            - uvicorn
+          args:
+            - app.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8001"
+          # readinessProbe:
+          #   httpGet:
+          #     path: /api/health-check
+          #     port: 8000
+          #   initialDelaySeconds: 5
+          #   periodSeconds: 10
+          # livenessProbe:
+          #   httpGet:
+          #     path: /api/health-check
+          #     port: 8000
+          #   initialDelaySeconds: 15
+          #   periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+
