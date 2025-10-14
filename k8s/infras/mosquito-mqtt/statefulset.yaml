@@ -20,6 +20,9 @@ spec:
         - name: mosquitto
           image: eclipse-mosquitto:2.0
           imagePullPolicy: IfNotPresent
+          env:
+            - name: MOSQUITTO_PERSISTENCE
+              value: "true"
           ports:
             - containerPort: 1883
               name: mqtt

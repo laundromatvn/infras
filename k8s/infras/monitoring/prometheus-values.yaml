@@ -1,0 +1,26 @@
+# prometheus-values.yaml
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: admin
+  persistence:
+    enabled: false
+  # Optional: expose Grafana inside cluster only
+  service:
+    type: ClusterIP
+    port: 80
+
+prometheus:
+  prometheusSpec:
+    retention: 30d               # only 30d metrics
+    scrapeInterval: 15s
+    evaluationInterval: 30s
+    storageSpec:
+      volumeClaimTemplate: null  # no PVC
+      retentionSize: 10GB
+      emptyDir: {}               # use ephemeral storage
+
+alertmanager:
+  enabled: false  # disable for now
+
+
