@@ -1,6 +1,10 @@
 # loki-values.yaml
 persistence:
-  enabled: false  # disable PVCs
+  enabled: true
+  storageClassName: vngcloud-ssd-3000-delete
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
 
 deploymentMode: SingleBinary
 write:

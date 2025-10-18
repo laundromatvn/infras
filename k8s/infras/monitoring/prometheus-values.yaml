@@ -4,7 +4,11 @@ grafana:
   adminUser: admin
   adminPassword: admin
   persistence:
-    enabled: false
+    enabled: true
+    storageClassName: vngcloud-ssd-3000-delete
+    accessModes:
+      - ReadWriteOnce
+    size: 3Gi
   # Optional: expose Grafana inside cluster only
   service:
     type: ClusterIP
@@ -16,11 +20,13 @@ prometheus:
     scrapeInterval: 15s
     evaluationInterval: 30s
     storageSpec:
-      volumeClaimTemplate: null  # no PVC
-      retentionSize: 10GB
-      emptyDir: {}               # use ephemeral storage
+      volumeClaimTemplate:
+        spec:
+          storageClassName: vngcloud-ssd-3000-delete
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
 
 alertmanager:
   enabled: false  # disable for now
-
-

@@ -29,6 +29,7 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+              subPath: postgres
           readinessProbe:
             exec:
               command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER"]
@@ -41,8 +42,12 @@ spec:
             periodSeconds: 20
       securityContext:
         fsGroup: 999
-      volumes:
-        - name: postgres-data
-          hostPath:
-            path: /data/postgres
-            type: DirectoryOrCreate
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: vngcloud-ssd-3000-delete
+        resources:
+          requests:
+            storage: 30Gi

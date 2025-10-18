@@ -1,6 +1,6 @@
 # Kubernetes Monitoring with Prometheus, Grafana, and Loki
 
-This document provides a step-by-step guide to setting up a monitoring system for a Kubernetes cluster using Prometheus, Grafana, and Loki. This setup is configured to use ephemeral storage, meaning that monitoring data will be lost when pods restart.
+This document provides a step-by-step guide to setting up a monitoring system for a Kubernetes cluster using Prometheus, Grafana, and Loki. This setup is configured to use persistent storage.
 
 ## Prerequisites
 
@@ -9,7 +9,126 @@ This document provides a step-by-step guide to setting up a monitoring system fo
 
 ## Installation Steps
 
-### 1. Add Helm Repositories
+### 1. Create Values Files
+
+Create the following files with the content below:
+
+**`prometheus-values.yaml`**
+```yaml
+# prometheus-values.yaml
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: admin
+  persistence:
+    enabled: true
+    storageClassName: vngcloud-ssd-3000-delete
+    accessModes:
+      - ReadWriteOnce
+    size: 3Gi
+  # Optional: expose Grafana inside cluster only
+  service:
+    type: ClusterIP
+    port: 80
+
+prometheus:
+  prometheusSpec:
+    retention: 30d               # only 30d metrics
+    scrapeInterval: 15s
+    evaluationInterval: 30s
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: vngcloud-ssd-3000-delete
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  enabled: false  # disable for now
+```
+
+**`loki-values.yaml`**
+```yaml
+# loki-values.yaml
+persistence:
+  enabled: true
+  storageClassName: vngcloud-ssd-3000-delete
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+
+deploymentMode: SingleBinary
+write:
+  replicas: 0
+read:
+  replicas: 0
+backend:
+  replicas: 0
+
+loki:
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2020-10-24"
+        store: boltdb-shipper
+        object_store: filesystem
+        schema: v11
+        index:
+          prefix: index_
+          period: 24h
+  compactor:
+    retention_enabled: false
+```
+
+**`promtail-values.yaml`**
+```yaml
+# promtail-values.yaml
+persistence:
+  enabled: true
+  storageClassName: vngcloud-ssd-3000-delete
+  accessModes:
+    - ReadWriteOnce
+  size: 2Gi
+daemonset:
+  enabled: true
+
+config:
+  server:
+    http_listen_port: 9080
+  positions:
+    filename: /tmp/positions.yaml
+  clients:
+    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
+  scrape_configs:
+    - job_name: kubernetes-pods-lms
+      pipeline_stages:
+        - docker: {}
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        # Only namespace "lms"
+        - source_labels: [__meta_kubernetes_namespace]
+          action: keep
+          regex: lms
+        # Only lms-backend or lms-mqtt-consumer pods
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: keep
+          regex: 'lms-backend.*|lms-mqtt-consumer.*'
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: pod
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+        - source_labels: [__meta_kubernetes_container_name]
+          target_label: container
+```
+
+### 2. Add Helm Repositories
 
 First, we need to add the Helm repositories for Prometheus and Grafana.
 
@@ -19,31 +138,26 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 ```
 
-### 2. Install kube-prometheus-stack
+### 3. Install kube-prometheus-stack
 
-Next, we will install the `kube-prometheus-stack`, which includes Prometheus for metrics collection and Grafana for visualization. We will disable persistent storage for all components.
+Next, we will install the `kube-prometheus-stack`, which includes Prometheus for metrics collection and Grafana for visualization.
 
 ```bash
-helm install prometheus prometheus-community/kube-prometheus-stack \
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace \
-  --set prometheus.prometheusSpec.storageSpec.emptyDir.sizeLimit=10Gi \
-  --set prometheus.prometheusSpec.storageSpec.emptyDir.medium="" \
-  --set grafana.persistence.enabled=false \
-  --set alertmanager.persistence.enabled=false
+  -f prometheus-values.yaml
 ```
 
-### 3. Install Loki and Promtail
+### 4. Install Loki and Promtail
 
-Now, we will install the `loki-stack`, which includes Loki for log aggregation and Promtail for log collection. We will disable persistent storage for Loki and configure Promtail to scrape logs from specific applications in the `lms` namespace.
+Now, we will install the `loki-stack`, which includes Loki for log aggregation and Promtail for log collection.
 
 ```bash
-helm install loki grafana/loki-stack \
+helm upgrade --install loki grafana/loki-stack \
   --namespace monitoring \
-  --set loki.persistence.enabled=false \
-  --set promtail.enabled=true \
-  --set "promtail.config.snippets.pipelineStages[0].docker.labels.app.regex"="lms-backend|lms-mqtt-consumer" \
-  --set "promtail.config.snippets.pipelineStages[0].docker.labels.namespace"="lms"
+  -f loki-values.yaml \
+  -f promtail-values.yaml
 ```
 
 ## Accessing Grafana and Prometheus
@@ -75,102 +189,3 @@ helm install loki grafana/loki-stack \
     ```
 
 2.  Open your browser and navigate to `http://localhost:9090`.
-
-## Configuration
-
-### Add Loki Data Source to Grafana
-
-1.  Navigate to the Grafana UI in your browser.
-2.  In the left-hand menu, go to the "Connections" section and click on "Data Sources".
-3.  Click on "Add new data source" and select "Loki".
-4.  In the "URL" field, enter `http://loki:3100`.
-5.  Click "Save & test".
-
-## Verification
-
-### Verify Prometheus Targets
-
-1.  Access the Prometheus UI.
-2.  Navigate to the "Status" -> "Targets" page.
-3.  Verify that all targets are in the "UP" state.
-
-### Verify Log Scraping
-
-1.  Access the Grafana UI.
-2.  In the left-hand menu, click on the "Explore" icon.
-3.  Select the "Loki" data source from the dropdown menu.
-4.  Use the "Log browser" to query for your logs. For example, to see all logs from the `lms` namespace, use the query `{namespace="lms"}`.
-
-## Troubleshooting
-
-### Loki Data Source Connection Issues
-
-If you are unable to connect to the Loki data source in Grafana, and you are seeing errors in the Grafana logs such as `dial tcp 10.96.183.184:80: i/o timeout`, it means that Grafana is trying to connect to Loki on the wrong port.
-
-To resolve this, you can provision the Loki data source automatically by creating a configmap and updating the Grafana deployment.
-
-1.  **Create a `loki-datasource.yaml` file with the following content:**
-
-    ```yaml
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: grafana-datasources-loki
-      namespace: monitoring
-      labels:
-        grafana_datasource: "1"
-    data:
-      loki-datasource.yaml: |-
-        apiVersion: 1
-        datasources:
-        - name: Loki
-          type: loki
-          url: http://loki:3100
-          access: proxy
-          isDefault: false
-          jsonData:
-            maxLines: 1000
-    ```
-
-2.  **Apply the configmap to your cluster:**
-
-    ```bash
-    kubectl apply -f loki-datasource.yaml
-    ```
-
-3.  **Update the Grafana deployment to mount the new configmap.**
-
-    First, get the current Grafana deployment and save it to a file:
-
-    ```bash
-    kubectl get deployment -n monitoring prometheus-grafana -o yaml > grafana-deployment.yaml
-    ```
-
-    Then, edit the `grafana-deployment.yaml` file and add the following `volume` and `volumeMount` to the deployment spec:
-
-    Under `spec.template.spec.volumes`, add:
-
-    ```yaml
-          - configMap:
-              defaultMode: 420
-              name: grafana-datasources-loki
-            name: loki-datasource
-    ```
-
-    Under `spec.template.spec.containers.volumeMounts` for the `grafana` container, add:
-
-    ```yaml
-            - mountPath: /etc/grafana/provisioning/datasources/loki-datasource.yaml
-              name: loki-datasource
-              subPath: loki-datasource.yaml
-    ```
-
-4.  **Apply the updated deployment:**
-
-    ```bash
-    kubectl apply -f grafana-deployment.yaml
-    ```
-
-    This will restart the Grafana pod, and the Loki data source should be automatically provisioned.
-
-

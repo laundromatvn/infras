@@ -1,4 +1,10 @@
 # promtail-values.yaml
+persistence:
+  enabled: true
+  storageClassName: vngcloud-ssd-3000-delete
+  accessModes:
+    - ReadWriteOnce
+  size: 2Gi
 daemonset:
   enabled: true
 

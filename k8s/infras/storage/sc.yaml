@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: vngcloud-storage-class                    # [1] The StorageClass name, CAN be changed
+provisioner: bs.csi.vngcloud.vn                       # The VNG-CLOUD CSI driver name
+parameters:
+  type: vtype-e782f8e1-0569-11f0-a0a4-ec2a72332f83    # The volume type UUID
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+
+
