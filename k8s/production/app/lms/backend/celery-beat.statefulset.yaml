@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: lms-celery-beat
-          image: devlaundromat/lms-celery-beat_production:20251013_153433_5686824
+          image: devlaundromat/lms-celery-beat_production:20251109_125455_175fbb4
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:

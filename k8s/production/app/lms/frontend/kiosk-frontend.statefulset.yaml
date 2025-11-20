@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: lms-kiosk-frontend
-          image: devlaundromat/lms-frontend:20251011_115740_aef04db
+          image: devlaundromat/lms-kiosk-frontend_production:20251109_125736_2543370
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

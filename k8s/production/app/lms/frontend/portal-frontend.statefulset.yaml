@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: lms-portal-frontend
-          image: devlaundromat/lms-portal-frontend:20251011_103739_18ffba6
+          image: devlaundromat/lms-portal-frontend_production:20251109_125134_c146332
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

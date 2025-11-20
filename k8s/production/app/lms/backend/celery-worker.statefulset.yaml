@@ -7,7 +7,7 @@ metadata:
     app: lms-celery-worker
 spec:
   serviceName: lms-celery-worker
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: lms-celery-worker
@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: lms-celery-worker
-          image: devlaundromat/lms-celery-worker_production:20251013_153506_5686824
+          image: devlaundromat/lms-celery-worker_production:20251109_125411_175fbb4
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:

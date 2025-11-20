@@ -23,6 +23,11 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
+          env:
+            - name: TZ
+              value: "Asia/Ho_Chi_Minh"
+            - name: PGTZ
+              value: "Asia/Ho_Chi_Minh"
           envFrom:
             - secretRef:
                 name: postgres-secret
@@ -30,6 +35,9 @@ spec:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
               subPath: postgres
+            - name: postgres-config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
           readinessProbe:
             exec:
               command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER"]
@@ -42,6 +50,10 @@ spec:
             periodSeconds: 20
       securityContext:
         fsGroup: 999
+      volumes:
+        - name: postgres-config
+          configMap:
+            name: postgres-config
   volumeClaimTemplates:
     - metadata:
         name: postgres-data

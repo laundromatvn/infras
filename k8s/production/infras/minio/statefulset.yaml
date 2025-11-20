@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: minio
+  labels:
+    app: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+          ports:
+            - containerPort: 9000
+              name: api
+            - containerPort: 9001
+              name: console
+          env:
+            - name: TZ
+              value: "Asia/Ho_Chi_Minh"
+          envFrom:
+            - secretRef:
+                name: minio-secret
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+        - name: setup-admin-policy
+          image: minio/mc:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for MinIO to be ready..."
+              sleep 15
+              until mc alias set local http://127.0.0.1:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD 2>/dev/null; do
+                echo "Waiting for MinIO to be accessible..."
+                sleep 5
+              done
+              echo "MinIO is ready. Attaching consoleAdmin policy to root user..."
+              mc admin policy attach local consoleAdmin --user=$MINIO_ROOT_USER || echo "Policy attachment attempted"
+              echo "Verifying policy attachment..."
+              mc admin policy list local --user=$MINIO_ROOT_USER || true
+              echo "Admin policy setup script completed. Container will keep running to maintain policy."
+              # Keep container running
+              while true; do sleep 3600; done
+          envFrom:
+            - secretRef:
+                name: minio-secret
+      securityContext:
+        fsGroup: 1000
+  volumeClaimTemplates:
+    - metadata:
+        name: minio-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: vngcloud-ssd-3000-delete
+        resources:
+          requests:
+            storage: 25Gi
+
