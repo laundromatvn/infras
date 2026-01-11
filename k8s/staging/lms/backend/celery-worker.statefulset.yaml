@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-celery-worker
+  namespace: lms
+  labels:
+    app: lms-celery-worker
+spec:
+  serviceName: lms-celery-worker
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-celery-worker
+  template:
+    metadata:
+      labels:
+        app: lms-celery-worker
+    spec:
+      containers:
+        - name: lms-celery-worker
+          image: devlaundromat/lms-celery-worker_staging:20260111_150443_3d591ab
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: lms-backend-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+

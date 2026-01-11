@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-mqtt-consumer
+  namespace: lms
+  labels:
+    app: lms-mqtt-consumer
+spec:
+  serviceName: lms-mqtt-consumer
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-mqtt-consumer
+  template:
+    metadata:
+      labels:
+        app: lms-mqtt-consumer
+    spec:
+      containers:
+        - name: lms-mqtt-consumer
+          image: devlaundromat/lms-mqtt-consumer_staging:20260111_150503_3d591ab
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: lms-backend-secret
+          command:
+            - uvicorn
+          args:
+            - app.mqtt_consumer:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8001"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

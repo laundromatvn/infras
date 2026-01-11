@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mosquitto
+  namespace: mosquito-mqtt
+  labels:
+    app: mosquitto
+spec:
+  serviceName: mosquitto
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MOSQUITTO_PERSISTENCE
+              value: "true"
+          ports:
+            - containerPort: 1883
+              name: mqtt
+          volumeMounts:
+            - name: mosquitto-config
+              mountPath: /mosquitto/config
+            - name: mosquitto-data
+              mountPath: /mosquitto/data
+            - name: mosquitto-log
+              mountPath: /mosquitto/log
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+      volumes:
+        - name: mosquitto-config
+          configMap:
+            name: mosquitto-config
+            items:
+              - key: mosquitto.conf
+                path: mosquitto.conf
+        - name: mosquitto-data
+          hostPath:
+            path: /data/mosquitto/data
+            type: DirectoryOrCreate
+        - name: mosquitto-log
+          hostPath:
+            path: /data/mosquitto/log
+            type: DirectoryOrCreate
+
+

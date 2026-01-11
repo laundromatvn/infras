@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: database
+  labels:
+    app: postgres
+data:
+  postgresql.conf: |
+    # PostgreSQL configuration for Vietnam timezone
+    timezone = 'Asia/Ho_Chi_Minh'
+    log_timezone = 'Asia/Ho_Chi_Minh'
+    # Additional timezone-related settings
+    default_transaction_isolation = 'read committed'
+    log_statement = 'none'
+    log_destination = 'stderr'
+    logging_collector = on
+    log_min_messages = warning
+    log_min_error_statement = error
+    log_min_duration_statement = -1

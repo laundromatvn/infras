@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-celery-beat
+  namespace: lms
+  labels:
+    app: lms-celery-beat
+spec:
+  serviceName: lms-celery-beat
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-celery-beat
+  template:
+    metadata:
+      labels:
+        app: lms-celery-beat
+    spec:
+      containers:
+        - name: lms-celery-beat
+          image: devlaundromat/lms-celery-beat_staging:20260111_150356_3d591ab
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: lms-backend-secret
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      securityContext:
+        fsGroup: 999
+
+

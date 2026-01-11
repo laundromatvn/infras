@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-backend
+  namespace: lms
+  labels:
+    app: lms-backend
+spec:
+  serviceName: lms-backend
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-backend
+  template:
+    metadata:
+      labels:
+        app: lms-backend
+    spec:
+      containers:
+        - name: lms-backend
+          image: devlaundromat/lms-backend_staging:20260109_115956_3d591ab
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: lms-backend-secret
+          command:
+            - uvicorn
+          args:
+            - app.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /api/health-check
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health-check
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+

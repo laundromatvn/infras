@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lms-portal-frontend-ingress
+  namespace: lms
+  annotations:
+    cert-manager.io/issuer: "letsencrypt-prod"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - portal-staging.washgo247.com
+    secretName: portal-staging-washgo247-com-tls
+  rules:
+  - host: portal-staging.washgo247.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: lms-portal-frontend-clusterip
+            port:
+              number: 80

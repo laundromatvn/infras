@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lms-kiosk-frontend
+  namespace: lms
+  labels:
+    app: lms-kiosk-frontend
+spec:
+  serviceName: lms-kiosk-frontend
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lms-kiosk-frontend
+  template:
+    metadata:
+      labels:
+        app: lms-kiosk-frontend
+    spec:
+      containers:
+        - name: lms-kiosk-frontend
+          image: devlaundromat/lms-kiosk-frontend_staging:20260109_130446_8b78a3c
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
