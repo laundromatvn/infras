@@ -1,4 +1,15 @@
-# promtail-values.yaml
+daemonset:
+  enabled: true
+
+# Persist positions.yaml to avoid re-sending old logs
+extraVolumes:
+  - name: positions
+    emptyDir: {}
+
+extraVolumeMounts:
+  - name: positions
+    mountPath: /run/promtail
+
 persistence:
   enabled: true
   storageClassName: vngcloud-ssd-3000-delete
@@ -6,39 +17,60 @@ persistence:
     - ReadWriteOnce
   size: 2Gi
 
-daemonset:
-  enabled: true
-
 config:
   server:
     http_listen_port: 9080
+
   positions:
     filename: /run/promtail/positions.yaml
+
   clients:
-    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    - url: https://loki.washgo247.com/loki/api/v1/push
+      basic_auth:
+        username: staging_writer
+        password: STRONG_PASSWORD
 
   scrape_configs:
     - job_name: kubernetes-pods-lms
+
       pipeline_stages:
         - docker: {}
+
       kubernetes_sd_configs:
         - role: pod
+
       relabel_configs:
+        # Drop kube-system completely (avoid old system logs)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: drop
+          regex: kube-system
+
         # Only namespace "lms"
         - source_labels: [__meta_kubernetes_namespace]
           action: keep
           regex: lms
-        # Only lms-backend or lms-mqtt-consumer pods
+
+        # Only backend & mqtt consumer
         - source_labels: [__meta_kubernetes_pod_name]
           action: keep
           regex: 'lms-backend.*|lms-mqtt-consumer.*'
+
+        # Standard labels
         - source_labels: [__meta_kubernetes_pod_name]
           target_label: pod
+
         - source_labels: [__meta_kubernetes_namespace]
           target_label: namespace
+
         - source_labels: [__meta_kubernetes_container_name]
           target_label: container
+
+        # Static environment labels
         - target_label: cluster
-          replacement: production
+          replacement: staging
+
         - target_label: environment
-          replacement: production
+          replacement: staging
+
+        - target_label: job
+          replacement: lms

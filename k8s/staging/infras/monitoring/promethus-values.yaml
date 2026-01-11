@@ -1,0 +1,27 @@
+grafana:
+  enabled: false
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    scrapeInterval: 15s
+    evaluationInterval: 30s
+
+    externalLabels:
+      cluster: staging
+      environment: staging
+
+    remoteWrite:
+      - url: https://prometheus.washgo247.com/api/v1/write
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: vngcloud-ssd-3000-delete
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi

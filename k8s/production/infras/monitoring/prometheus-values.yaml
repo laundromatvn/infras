@@ -1,32 +1,70 @@
-# prometheus-values.yaml
+# prometheus-values.yaml (PRODUCTION)
+
 grafana:
   enabled: true
+
   adminUser: admin
-  adminPassword: admin
+  adminPassword: admin   # ⚠️ nên chuyển sang existingSecret sau
+
   persistence:
     enabled: true
     storageClassName: vngcloud-ssd-3000-delete
     accessModes:
       - ReadWriteOnce
     size: 3Gi
-  # Optional: expose Grafana inside cluster only
+
   service:
     type: ClusterIP
     port: 80
 
+  # Tránh lỗi PVC RWO khi rollout
+  deploymentStrategy:
+    type: Recreate
+
+alertmanager:
+  enabled: false
+
 prometheus:
+  service:
+    type: ClusterIP
+    port: 9090
+
   prometheusSpec:
-    retention: 30d               # only 30d metrics
-    scrapeInterval: 15s
-    evaluationInterval: 30s
+    # ======================
+    # Core behavior
+    # ======================
+    retention: 7d
+    scrapeInterval: 30s
+    evaluationInterval: 60s
+
+    # ======================
+    # VERY IMPORTANT
+    # ======================
+    externalLabels:
+      cluster: production
+      environment: production
+
+    # ======================
+    # Storage
+    # ======================
     storageSpec:
       volumeClaimTemplate:
         spec:
           storageClassName: vngcloud-ssd-3000-delete
-          accessModes: ["ReadWriteOnce"]
+          accessModes:
+            - ReadWriteOnce
           resources:
             requests:
-              storage: 10Gi
+              storage: 20Gi
 
-alertmanager:
-  enabled: false  # disable for now
+    # ======================
+    # Performance & safety
+    # ======================
+    enableAdminAPI: false
+    walCompression: true
+
+    # ======================
+    # (Optional) Remote write receiver
+    # ======================
+    # Nếu PROD nhận metric từ STAGING
+    enableRemoteWriteReceiver: true
