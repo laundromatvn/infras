@@ -1,10 +1,10 @@
-# prometheus-values.yaml (PRODUCTION)
-
 grafana:
   enabled: true
-
   adminUser: admin
-  adminPassword: admin   # ⚠️ nên chuyển sang existingSecret sau
+  adminPassword: admin   # nên dùng secret sau
+
+  deploymentStrategy:
+    type: Recreate
 
   persistence:
     enabled: true
@@ -17,36 +17,23 @@ grafana:
     type: ClusterIP
     port: 80
 
-  # Tránh lỗi PVC RWO khi rollout
-  deploymentStrategy:
-    type: Recreate
-
 alertmanager:
   enabled: false
 
 prometheus:
-  service:
-    type: ClusterIP
-    port: 9090
-
   prometheusSpec:
-    # ======================
-    # Core behavior
-    # ======================
     retention: 7d
     scrapeInterval: 30s
     evaluationInterval: 60s
 
-    # ======================
-    # VERY IMPORTANT
-    # ======================
     externalLabels:
       cluster: production
       environment: production
 
-    # ======================
-    # Storage
-    # ======================
+    walCompression: true
+    enableAdminAPI: false
+    enableRemoteWriteReceiver: true
+
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -57,14 +44,6 @@ prometheus:
             requests:
               storage: 20Gi
 
-    # ======================
-    # Performance & safety
-    # ======================
-    enableAdminAPI: false
-    walCompression: true
-
-    # ======================
-    # (Optional) Remote write receiver
-    # ======================
-    # Nếu PROD nhận metric từ STAGING
-    enableRemoteWriteReceiver: true
+prometheus-node-exporter:
+  hostNetwork: true
+  hostPID: true

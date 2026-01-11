@@ -36,10 +36,7 @@ serviceMonitor:
 
 extraEnvs:
   - name: DATA_SOURCE_NAME
-    valueFrom:
-      secretKeyRef:
-        name: postgres-exporter-secret
-        key: DATA_SOURCE_NAME
+    value: "postgresql://postgres_exporter:STRONG_PASSWORD@postgres-clusterip.database.svc.cluster.local:5432/postgres?sslmode=disable"
 
 resources:
   requests:
